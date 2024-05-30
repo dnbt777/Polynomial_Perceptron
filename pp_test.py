@@ -18,31 +18,30 @@ y = (y_train, y_test)
 from pp import PP, MSE, softmax
 import numpy as np
 import random
+import time
 
-io = [784, 1]
-constants = 100 # a, b, c, d, etc -
+io = [784, 10]
+constants = 5 # a, b, c, d, etc -
 pp_type = "mclaurin" 
 
-pp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=1e-3)
+pp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=1e-4)
 print(pp)
 
+
 # train
+nums = np.zeros((10, 10))
+np.fill_diagonal(nums, 1)
 xtrain = [np.array(x_) for x_ in x[0]]
-ytrain = [np.array(y_) for y_ in y[0]]
+ytrain = [nums[:,y_] for y_ in y[0]]
 train = list(zip(xtrain, ytrain))
 
 
-epochs = 1000000
+epochs = 10000
 avgrunlosses = []
 printevery=1000
+start = time.time()
 for i in range(epochs):
     sampled_x, sampled_y = random.choice(train)
-    sampled_y = np.array([sampled_y])
-
-    if i==0:
-        print(sampled_y.shape)
-        print(sampled_x)
-        print(sampled_y)
 
     yhat = pp.forward(sampled_x)
 
@@ -53,27 +52,63 @@ for i in range(epochs):
     pp.update_and_zero_grad()
 
     if i%printevery==0 and i!=0:
-        print(f"loss at {i}: {np.average(avgrunlosses):.5f}")
+        print(f"loss at {i}: {np.average(avgrunlosses):.5f}  t:{time.time()-start:.2f}")
         avgrunlosses = []
 
-# test
 
 
-from mlp import MLP
-# Set up MLP network
-input_size = 784
-hidden_size = 128
-output_size = 10
-mlp = MLP(input_size, hidden_size, output_size)
 
-# Train MLP
-xtrain = [np.array(x_) for x_ in x[0]]
-ytrain = [np.eye(output_size)[y_] for y_ in y[0]]  # One-hot encoding for labels
-mlp.train(xtrain, ytrain, epochs=1000, printevery=100)
 
-# Test MLP
-xtest = [np.array(x_) for x_ in x[1]]
-ytest = y[1]
-predictions = [mlp.predict(x_) for x_ in xtest]
-accuracy = np.mean([pred == true for pred, true in zip(predictions, ytest)])
-print(f"Test accuracy: {accuracy:.2f}")
+# exp one
+pp_type = "exp" 
+
+pp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=1e-4)
+print(pp)
+
+start = time.time()
+for i in range(epochs):
+    sampled_x, sampled_y = random.choice(train)
+
+    yhat = pp.forward(sampled_x)
+
+    loss = MSE(sampled_y, yhat)
+    avgrunlosses.append(loss)
+
+    pp.backward(sampled_y, yhat)
+    pp.update_and_zero_grad()
+
+    if i%printevery==0:
+        print(f"loss at {i}: {np.average(avgrunlosses):.5f}  t:{time.time()-start:.2f}")
+        avgrunlosses = []
+
+
+
+# # test
+# from mlp import MLP
+# input_size = 784
+# hidden_layers = [784 for _ in range(constants)]
+# output_size = 2
+# learning_rate = 1e-3
+# epochs = 10000
+# print_every = epochs // 1000
+
+# mlp = MLP(input_size, hidden_layers, output_size, learning_rate)
+
+# # Generate some random data for testing
+# np.random.seed(42)
+# X = np.random.rand(100, input_size)
+# y = np.array([[1, 0] if x[0] + x[1] > 1 else [0, 1] for x in X])
+
+# start = time.time()
+# avglosses = []
+# for epoch in range(epochs):
+#     yhat = mlp.forward(X)
+#     loss = MSE(y, yhat)
+#     mlp.backward(X, y, yhat)
+#     avglosses.append(loss)
+    
+#     if epoch % print_every == 0:
+#         print(f"Epoch {epoch}, Loss: {np.average(avglosses):.4f}, Time: {time.time() - start:.2f}s")
+#         avglosses = []
+
+# print("Training complete.")
