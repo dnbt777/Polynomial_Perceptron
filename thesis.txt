@@ -1,0 +1,69 @@
+POLYNOMIAL NEURAL NETWORK
+f(x) = a + bx + cx^2 + dx^3 + ex^4 + ...
+f(x) = a + x*(b + x*(c + x*(d + x*(e + ...
+
+constants a b c d e etc can be matrices
+these are both weights and biases
+
+easy backprop:
+df/da = 1 (shape = (output,))
+df/db = x
+df/dc = x^2
+etc
+
+backprop can be done in parallel BECAUSE I dont need to calculate "up the chain"
+
+approximates any function
+
+a PNN is a form of a GABPNN
+
+
+G(a,b) POLYNOMIAL NEURAL NETWORK
+
+g(a,b) = any function of two numbers
+
+todo work on this
+
+f(x) = a + g(b,x) + cx^2 + dx^3 + ex^4 + ...
+f(x) = a + x*(b + x*(c + x*(d + x*(e + ...
+
+
+
+taylor polynomials - this ca
+
+f(x)≈f(a)+f′(a)(x−a)+2!f′′(a)​(x−a)2+3!f′′′(a)​(x−a)3+⋯
+
+ok so.. if I pick a random a, and train f(x).. I can find the derivative at a of that dataset for all of the functions?
+
+
+
+
+
+another one:
+make it so that arbitrary functions can be chosen by the algorithm
+exp, cos, sin, etc
+have a certain number of terms
+
+f(x) = matrix*x + matrix*x + etc... only allows for affine transforms
+make a replacement for the matrix that allows for nearly all transforms
+
+
+sin and cos are just exponential
+samme w all hyperbolic trig functions
+so maybe an exponential matrix, since z = a + bi = [[a, -b], [b, a]]
+
+# dnbt polynomial approximation
+# f(x) = e(mat) + e(mat)@x + e(mat)@x^2 + e(mat)@x^3...
+
+
+
+motivation
+show post
+realized MLPs suck at approximating certain functions
+its not about whether you can approximate functions
+its about how many terms you need before your approximation converges
+some infinite series converge 95% in 3 terms, some take trillions of terms
+
+
+another optimization
+for numbers/inputs < 1 use 1 / (1 - x)
