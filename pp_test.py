@@ -21,10 +21,10 @@ import random
 import time
 
 io = [784, 10]
-constants = 3 # a, b, c, d, etc -
-pp_type = "mclaurin" 
+constants = 50 # a, b, c, d, etc -
+pp_type = "exp" 
 
-pp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=3e-4)
+pp = PP(io, constants, pp_type=pp_type, pp_softmax=False, eta=1e-3)
 print(pp)
 
 
@@ -36,7 +36,7 @@ ytrain = [nums[:,y_] for y_ in y[0]]
 train = list(zip(xtrain, ytrain))
 
 
-epochs = 100000
+epochs = 10_000_000
 avgrunlosses = []
 printevery=1000
 start = time.time()
