@@ -21,10 +21,10 @@ import random
 import time
 
 io = [784, 10]
-constants = 5 # a, b, c, d, etc -
+constants = 3 # a, b, c, d, etc -
 pp_type = "mclaurin" 
 
-pp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=1e-4)
+pp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=3e-4)
 print(pp)
 
 
@@ -36,12 +36,14 @@ ytrain = [nums[:,y_] for y_ in y[0]]
 train = list(zip(xtrain, ytrain))
 
 
-epochs = 10000
+epochs = 100000
 avgrunlosses = []
 printevery=1000
 start = time.time()
 for i in range(epochs):
     sampled_x, sampled_y = random.choice(train)
+    sampled_x = np.array(sampled_x)
+    sampled_y = np.array(sampled_y)
 
     yhat = pp.forward(sampled_x)
 
@@ -55,31 +57,41 @@ for i in range(epochs):
         print(f"loss at {i}: {np.average(avgrunlosses):.5f}  t:{time.time()-start:.2f}")
         avgrunlosses = []
 
+print(pp.forward(np.zeros(784)))
+print(pp.forward(np.ones(784)))
+
+from DrawingApp import DrawingApp
+import tkinter as tk
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = DrawingApp(root, pp)  # Use the trained model 'pp'
+    root.mainloop()
 
 
+# # exp one
+# pp_type = "exp" 
 
+# expp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=3e-4)
+# print(expp)
 
-# exp one
-pp_type = "exp" 
+# start = time.time()
+# for i in range(epochs):
+#     sampled_x, sampled_y = random.choice(train)
 
-pp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=1e-4)
-print(pp)
+#     yhat = expp.forward(sampled_x)
 
-start = time.time()
-for i in range(epochs):
-    sampled_x, sampled_y = random.choice(train)
+#     if i == 0:
+#         print(sampled_y, yhat)
 
-    yhat = pp.forward(sampled_x)
+#     loss = MSE(sampled_y, yhat)
+#     avgrunlosses.append(loss)
 
-    loss = MSE(sampled_y, yhat)
-    avgrunlosses.append(loss)
+#     expp.backward(sampled_y, yhat)
+#     expp.update_and_zero_grad()
 
-    pp.backward(sampled_y, yhat)
-    pp.update_and_zero_grad()
-
-    if i%printevery==0:
-        print(f"loss at {i}: {np.average(avgrunlosses):.5f}  t:{time.time()-start:.2f}")
-        avgrunlosses = []
+#     if i%printevery==0:
+#         print(f"loss at {i}: {np.average(avgrunlosses):.5f}  t:{time.time()-start:.2f}")
+#         avgrunlosses = []
 
 
 

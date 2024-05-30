@@ -22,6 +22,11 @@ def softmax(logits):
     exp_logits = np.exp(logits - np.max(logits))
     return exp_logits / np.sum(exp_logits)
 
+
+def scalebymax(logits):
+    return logits / np.max(logits)
+
+
 class PP():
     def __init__(self, io, constants, pp_type="exp", eta=1e-4, pp_softmax=True):
         self.a = np.zeros((io[0],)) # a in taylor series, set to 0 for now (mclaurin)
@@ -64,16 +69,20 @@ class PP():
 
     def forward(self, x):
         if self.softmax:
-            x = softmax(x)/len(x)
+            #x = softmax(x)/len(x)
+            x = scalebymax(x)
         terms = []
         term = self.constants[0]
         if self.type == "exp":
-                term = np.exp(term)
+                term = np.exp(term/self.output_shape) # divide by output shape to prevent explosion
         terms.append(self.constants[0])
         for i, constant_matrix in enumerate(self.constants[1:]):
             x_component = np.power(x, i) # unoptimized but who cares its mvp # if mclaurin add a or whatever
+            if self.type == "exp":
+                x_component = x_component/self.input_shape # prevent explosion
             term = constant_matrix @ x_component
             if self.type == "exp":
+                term = term/self.output_shape # divide by output shape to prevent explosion
                 term = np.exp(term) # approximates any function in one term, should converge w less terms
             assert term.shape == (self.output_shape,), "shape mismatch"
             terms.append(term)
@@ -149,42 +158,42 @@ class PP():
 # (b + x*...) <= (2, 11)
 
 
-def testpp(pptype):
-    io = [1, 1]
-    constants = 4 # a, b, c, d, etc -
-    pp_type = pptype
-    pp_softmax = True
+# def testpp(pptype):
+#     io = [1, 1]
+#     constants = 4 # a, b, c, d, etc -
+#     pp_type = pptype
+#     pp_softmax = True
 
-    pp = PP(io, constants, pp_type=pp_type, pp_softmax=False)
-    print(pp)
+#     pp = PP(io, constants, pp_type=pp_type, pp_softmax=False)
+#     print(pp)
 
-    datapoints = 1
-    xs = [np.random.rand(io[0]) for _ in range(datapoints)]
-    ys = [np.cos(x) for x in xs]
-    data = list(zip(xs, ys))
+#     datapoints = 1
+#     xs = [np.random.rand(io[0]) for _ in range(datapoints)]
+#     ys = [np.cos(x) for x in xs]
+#     data = list(zip(xs, ys))
 
-    epochs = 100000
-    avgrunlosses = []
-    printevery=epochs/10
-    start = time.time()
-    for i in range(epochs):
-        x, y = random.choice(data)
+#     epochs = 100000
+#     avgrunlosses = []
+#     printevery=epochs/10
+#     start = time.time()
+#     for i in range(epochs):
+#         x, y = random.choice(data)
 
-        yhat = pp.forward(x)
+#         yhat = pp.forward(x)
 
-        loss = MSE(y, yhat)
-        avgrunlosses.append(loss)
+#         loss = MSE(y, yhat)
+#         avgrunlosses.append(loss)
 
-        pp.backward(y, yhat)
-        pp.update_and_zero_grad()
+#         pp.backward(y, yhat)
+#         pp.update_and_zero_grad()
 
-        if i%printevery==0 and i!=0:
-            print(f"loss: at {i}", np.average(avgrunlosses), f"time={time.time()-start:.2f}")
-            avgrunlosses = []
+#         if i%printevery==0 and i!=0:
+#             print(f"loss: at {i}", np.average(avgrunlosses), f"time={time.time()-start:.2f}")
+#             avgrunlosses = []
 
 
-if __name__ == "__main__":
-    testpp("exp")
-    testpp("mclaurin")
+# if __name__ == "__main__":
+#     testpp("exp")
+#     testpp("mclaurin")
 
 
