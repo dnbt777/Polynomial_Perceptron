@@ -34,9 +34,9 @@ y = (y_train, y_test)
 
 # Set up network
 io = [784, 10]
-constants = 3  # a, b, c, d, etc -
+constants = 30  # a, b, c, d, etc -
 pp_type = "mclaurin"
-pp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=1e-6)
+pp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=1e-3)
 print(pp)
 
 # Train
@@ -61,6 +61,7 @@ for i in range(epochs):
     if i % printevery == 0 and i != 0:
         print(f"loss at {i}: {np.average(avgrunlosses):.5f} t:{time.time()-start:.2f}")
         avgrunlosses = []
+        
 
 # pp_type = "exp"
 # expp = PP(io, constants, pp_type=pp_type, pp_softmax=True, eta=3e-4)

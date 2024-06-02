@@ -12,7 +12,7 @@ import time
 
 
 def MSE(y, yhat):
-    return np.power(y - yhat, 2)
+    return np.sum(np.power(y - yhat, 2))/len(y)
 
 def MSE_derivative(y, yhat):
     return 2*(y - yhat) # (abs?)
@@ -53,7 +53,7 @@ class PP():
         self.eta = eta
 
         self.softmax = pp_softmax
-        self.grad_clipping = None
+        self.grad_clipping = True
 
         self.last_terms = []
 
@@ -85,17 +85,24 @@ class PP():
     def forward_mclaurin(self, x):
         self.last_x = x
         if self.softmax:
-            x = normalize(x)/len(x)
+            x = normalize(x)
+            x = x/sum(x)
             
         terms = []
 
         term = self.constants[0]
         terms.append(term)
 
+        x_component = x
+
         for i, constant_matrix in enumerate(self.constants[1:]):
-            x_component = np.power(x, i) # unoptimized but who cares its mvp # if mclaurin add a or whatever
-            if self.softmax:
-                x_component = scalebymax(x_component)/len(x)
+            if i > 0:
+                if self.softmax:
+                    x_component = normalize(x_component)
+                    x_component = x_component/sum(x_component)
+                    x_component = x*x_component
+                else:
+                    x_component = x*x_component
             term = constant_matrix @ x_component
 
             terms.append(term)
@@ -165,6 +172,8 @@ class PP():
             if self.no_first:
                 if i == 0: continue
             self.constants[i] -= update * self.eta
+            if self.grad_clipping:
+                self.constants[i] = np.clip(self.constants[i], -1, 1)
 
         self.last_x = None
         self.weight_updates = []
