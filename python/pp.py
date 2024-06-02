@@ -12,7 +12,7 @@ import time
 
 
 def MSE(y, yhat):
-    return (y - yhat)**2
+    return np.power(y - yhat, 2)
 
 def MSE_derivative(y, yhat):
     return 2*(y - yhat) # (abs?)
@@ -27,8 +27,12 @@ def scalebymax(logits):
     return logits / np.max(logits)
 
 
+def normalize(x):
+    return x / np.linalg.norm(x)
+
+
 class PP():
-    def __init__(self, io, constants, pp_type="exp", eta=1e-4, pp_softmax=True):
+    def __init__(self, io, constants, pp_type="exp", eta=1e-5, pp_softmax=True, no_first=True):
         self.a = np.zeros((io[0],)) # a in taylor series, set to 0 for now (mclaurin)
         self.type = pp_type # mclaurin taylor simple_exp exp
         # exp = z(n=0->m) exp(w*x^n), df_dw = x^n * exp(w * x^n)
@@ -39,6 +43,10 @@ class PP():
         self.neurons = [np.zeros(neuron_shape) for neuron_shape in self.neuron_shapes]
 
         self.constants = [np.random.rand(self.output_shape)] + [np.random.rand(self.input_shape*self.output_shape).reshape((self.output_shape, self.input_shape)) for _ in range(len(self.neurons))]
+        self.no_first = no_first
+        if no_first:
+            self.constants[0] = np.zeros_like(self.constants[0])
+
 
         self.last_x = None
         self.weight_updates = []
@@ -68,9 +76,37 @@ class PP():
 
 
     def forward(self, x):
+        if self.type == "mclaurin":
+            return self.forward_mclaurin(x)
+        if self.type == "exp":
+            return self.forward_exp(x)
+
+
+    def forward_mclaurin(self, x):
+        self.last_x = x
         if self.softmax:
-            #x = softmax(x)/len(x)
-            x = scalebymax(x)
+            x = normalize(x)/len(x)
+            
+        terms = []
+
+        term = self.constants[0]
+        terms.append(term)
+
+        for i, constant_matrix in enumerate(self.constants[1:]):
+            x_component = np.power(x, i) # unoptimized but who cares its mvp # if mclaurin add a or whatever
+            if self.softmax:
+                x_component = scalebymax(x_component)/len(x)
+            term = constant_matrix @ x_component
+
+            terms.append(term)
+        yhat = np.sum(np.array(terms), axis=0)
+        self.last_terms = terms
+        return yhat
+    
+
+    def forward_exp(self, x):
+        self.last_x = x
+        if self.softmax: x = normalize(x)
         terms = []
         term = self.constants[0]
         if self.type == "exp":
@@ -78,17 +114,16 @@ class PP():
         terms.append(self.constants[0])
         for i, constant_matrix in enumerate(self.constants[1:]):
             x_component = np.power(x, i) # unoptimized but who cares its mvp # if mclaurin add a or whatever
+            if self.softmax: x_component = normalize(x_component)
             if self.type == "exp":
                 x_component = x_component/self.input_shape # prevent explosion
             term = constant_matrix @ x_component
             if self.type == "exp":
                 term = term/self.output_shape # divide by output shape to prevent explosion
                 term = np.exp(term) # approximates any function in one term, should converge w less terms
-            assert term.shape == (self.output_shape,), "shape mismatch"
             terms.append(term)
         yhat = np.sum(np.array(terms), axis=0)
         self.last_terms = terms
-        self.last_x = x
         return yhat
 
 
@@ -127,6 +162,8 @@ class PP():
 
     def update_and_zero_grad(self):
         for i, update in enumerate(self.weight_updates):
+            if self.no_first:
+                if i == 0: continue
             self.constants[i] -= update * self.eta
 
         self.last_x = None
